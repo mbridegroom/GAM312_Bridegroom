@@ -5,6 +5,8 @@
 #include "CoreMinimal.h"
 #include "GameFramework/Character.h"
 #include "Camera/CameraComponent.h"
+#include "Resource_M.h"
+#include "Kismet/GameplayStatics.h"
 #include "PlayerChar.generated.h"
 
 UCLASS()
@@ -20,7 +22,7 @@ protected:
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
 
-public:	
+public:
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;
 
@@ -30,25 +32,81 @@ public:
 
 	// moves character forward and backward
 	UFUNCTION()
-		void MoveForward(float axisValue);
+	void MoveForward(float axisValue);
 
 	// moves character left and right
 	UFUNCTION()
-		void MoveRight(float axisValue);
+	void MoveRight(float axisValue);
 
 	// Starts the jump action
 	UFUNCTION()
-		void StartJump();
+	void StartJump();
 
 	// Stops the jump action
 	UFUNCTION()
-		void StopJump();
+	void StopJump();
 
 
 	UFUNCTION()
-		void FindObject();
+	void FindObject();
 
 	// player camera component
 	UPROPERTY(VisibleAnywhere)
-		UCameraComponent* PlayerCamComp;
+	UCameraComponent* PlayerCamComp;
+
+	// Player health value
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Player Stats")
+	float Health = 100.0f;
+
+	// Player hunger value
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Player Stats")
+	float Hunger = 100.0f;
+
+	// Player stamina value
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Player Stats")
+	float Stamina = 100.0f;
+
+	// Total wood amount
+	UPROPERTY(EditAnywhere, Category = "Resources")
+	int Wood;
+
+	// Total stone amount
+	UPROPERTY(EditAnywhere, Category = "Resources")
+	int Stone;
+
+	// Total berry amount
+	UPROPERTY(EditAnywhere, Category = "Resources")
+	int Berry;
+
+	// Stores all resource values
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Resources")
+	TArray<int> ResourcesArray;
+
+	// Stores resource names
+	UPROPERTY(EditAnywhere, Category = "Resources")
+	TArray<FString> ResourcesNameArray;
+
+	// Decal used for hit effect
+	UPROPERTY(EditAnywhere, Category = "HitMarker")
+	UMaterialInterface* hitDecal;
+
+	// Changes player health
+	UFUNCTION(BlueprintCallable)
+	void SetHealth(float Amount);
+
+	// Changes player hunger
+	UFUNCTION(BlueprintCallable)
+	void SetHunger(float Amount);
+
+	// Changes player stamina
+	UFUNCTION(BlueprintCallable)
+	void SetStamina(float Amount);
+
+	// Updates player stats over time
+	UFUNCTION()
+	void DecreaseStats();
+
+	// Adds resources to inventory
+	UFUNCTION()
+	void GiveResources(float Amount, FString resourceType);
 };
