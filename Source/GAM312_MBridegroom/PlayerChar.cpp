@@ -11,11 +11,7 @@ APlayerChar::APlayerChar()
 	PrimaryActorTick.bCanEverTick = true;
 
 	PlayerCamComp = CreateDefaultSubobject<UCameraComponent>(TEXT("First Person Cam")); 
-	PlayerCamComp->AttachToComponent(
-		GetMesh(),
-		FAttachmentTransformRules::SnapToTargetNotIncludingScale,
-		TEXT("head")
-	);
+	PlayerCamComp->SetupAttachment(GetMesh(), "head"); 
 	PlayerCamComp->bUsePawnControlRotation = true;
 
 	BuildingArray.SetNum(3);
@@ -41,7 +37,9 @@ void APlayerChar::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
+	PlayerUI->UpdateBars(Health, Hunger, Stamina);
 
+	// If player is building, update building part position
 	if (isBuilding)
 	{
 		if (spawnedPart)
@@ -95,6 +93,7 @@ void APlayerChar::SetupPlayerInputComponent(UInputComponent* PlayerInputComponen
 	PlayerInputComponent->BindAction("Jump", IE_Released, this, &APlayerChar::StopJump);
 
 	PlayerInputComponent->BindAction("Interact", IE_Pressed, this, &APlayerChar::FindObject);
+	// Setup Rotate Building input
 	PlayerInputComponent->BindAction("RotPart", IE_Pressed, this, &APlayerChar::RotateBuilding);
 }
 
@@ -145,8 +144,9 @@ void APlayerChar::FindObject()
 	QueryParams.bTraceComplex = true;
 	QueryParams.bReturnFaceIndex = true;
 
-	if (!isBuilding)
+	if (!isBuilding && !isCrafting)
 	{
+		PlayAnimMontage(HarvestMontage);
 		// Check for hit object
 		if (GetWorld()->LineTraceSingleByChannel(HitResult, StartLocation, EndLocation, ECC_Visibility, QueryParams))
 		{
@@ -158,8 +158,12 @@ void APlayerChar::FindObject()
 			{
 				if (HitResource)
 				{
+					
 					FString hitName = HitResource->resourceName;
-					int resourceValue = HitResource->resourceAmount;
+					int resourceValue = FMath::RandRange(
+						HitResource->MinResourceAmount,
+						HitResource->MaxResourceAmount
+					);
 
 					// Remove collected amount
 					HitResource->totalResource = HitResource->totalResource - resourceValue;
@@ -169,9 +173,9 @@ void APlayerChar::FindObject()
 					{
 						GiveResources(resourceValue, hitName);
 
-						check(GEngine != nullptr);
-						GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, TEXT("Resource Collected"));
+						
 
+						
 						// Spawn hit effect
 						UGameplayStatics::SpawnDecalAtLocation(
 							GetWorld(),
@@ -183,14 +187,15 @@ void APlayerChar::FindObject()
 
 						// Reduce stamina
 						SetStamina(-5.0f);
+						
 					}
 					else
 					{
 						// Remove empty resource
+						
 						HitResource->Destroy();
 
-						check(GEngine != nullptr);
-						GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, TEXT("Resource Depleted"));
+						
 					}
 				}
 			}
@@ -216,6 +221,10 @@ void APlayerChar::SetHealth(float Amount)
 	{
 		Health = Health + Amount;
 	}
+	else
+		{
+		Health = 100.0f;
+	}
 }
 
 void APlayerChar::SetHunger(float Amount)
@@ -225,6 +234,10 @@ void APlayerChar::SetHunger(float Amount)
 	{
 		Hunger = Hunger + Amount;
 	}
+	else
+	{
+		Hunger = 100.0f;
+	}
 }
 
 void APlayerChar::SetStamina(float Amount)
@@ -233,6 +246,10 @@ void APlayerChar::SetStamina(float Amount)
 	if (Stamina + Amount <= 100)
 	{
 		Stamina = Stamina + Amount;
+	}
+	else
+	{
+		Stamina = 100.0f;
 	}
 }
 
@@ -245,7 +262,7 @@ void APlayerChar::DecreaseStats()
 	}
 
 	// Restore stamina
-	SetStamina(10.0f);
+	SetStamina(0.5f);
 
 	// Lose health if starving
 	if (Hunger <= 0.0f)
@@ -256,6 +273,7 @@ void APlayerChar::DecreaseStats()
 
 void APlayerChar::GiveResources(float Amount, FString resourceType)
 {
+
 	// Add wood amount
 	if (resourceType == "Wood")
 	{
@@ -273,14 +291,16 @@ void APlayerChar::GiveResources(float Amount, FString resourceType)
 	{
 		ResourcesArray[2] = ResourcesArray[2] + Amount;
 	}
-}
 
+	ShowResourcePopup(resourceType, Amount);
+}
+// Updates resources when building
 void APlayerChar::UpdateResources(float woodAmount, float stoneAmount, FString buildingObject)
 {
 	if (woodAmount <= ResourcesArray[0])
 	{
 		if (stoneAmount <= ResourcesArray[1])
-		{
+		{    // Subtract used resources
 			ResourcesArray[0] = ResourcesArray[0] - woodAmount;
 			ResourcesArray[1] = ResourcesArray[1] - stoneAmount;
 
@@ -303,12 +323,13 @@ void APlayerChar::UpdateResources(float woodAmount, float stoneAmount, FString b
 	}
 }
 
+// Spawns building part
 void APlayerChar::SpawnBuilding(int buildingID, bool& isSuccess)
 {
 	if (!isBuilding)
 	{
 		if (BuildingArray[buildingID] >= 1)
-		{
+		{    // Spawn building part
 			isBuilding = true;
 			FActorSpawnParameters SpawnParams;
 			FVector StartLocation = PlayerCamComp->GetComponentLocation();
@@ -324,14 +345,16 @@ void APlayerChar::SpawnBuilding(int buildingID, bool& isSuccess)
 			spawnedPart->SetActorTickEnabled(true);
 
 			isSuccess = true;
+
 		
 		}
-
-		isSuccess = false;
-
+		else
+		{
+			isSuccess = false;
+		}
 	}
 }
-
+// Rotates building part
 void APlayerChar::RotateBuilding()
 {
 	if (isBuilding)
@@ -339,3 +362,4 @@ void APlayerChar::RotateBuilding()
 		spawnedPart->AddActorLocalRotation(FRotator(0, 90, 0));
 	}
 }
+

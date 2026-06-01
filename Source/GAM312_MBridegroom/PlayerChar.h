@@ -8,6 +8,8 @@
 #include "Resource_M.h"
 #include "Kismet/GameplayStatics.h"
 #include "BuildingPart.h"
+#include "PlayerWidget.h"
+#include "Animation/AnimMontage.h"
 #include "PlayerChar.generated.h"
 
 UCLASS()
@@ -68,7 +70,7 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Player Stats")
 		float Stamina = 100.0f;
 
-	
+		// Player resource values
 	UPROPERTY(EditAnywhere, Category = "Resources")
 		int Wood;
 
@@ -104,6 +106,9 @@ public:
 	UPROPERTY()
 		ABuildingPart* spawnedPart;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+		UPlayerWidget* PlayerUI;
+
 
 	// Changes player health
 	UFUNCTION(BlueprintCallable)
@@ -125,14 +130,27 @@ public:
 	UFUNCTION()
 		void GiveResources(float Amount, FString resourceType);
 
+		// Updates resources when building
 	UFUNCTION(BlueprintCallable)
 		void UpdateResources(float woodAmount, float stoneAmount, FString buildingObject);
-
+		// Spawns building part
 	UFUNCTION(BlueprintCallable)
 		void SpawnBuilding(int buildingID, bool& isSuccess);
-
+		// Rotates building part
 	UFUNCTION()
 		void RotateBuilding();
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Animation")
+		UAnimMontage* HarvestMontage;
+
+	UPROPERTY(BlueprintReadWrite, Category = "State")
+		bool isCrafting = false;
+
+	UFUNCTION(BlueprintImplementableEvent)
+		void ShowResourcePopup(const FString& ResourceType, float Amount);
+
+
+
 
 
 };

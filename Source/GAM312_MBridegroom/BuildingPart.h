@@ -24,9 +24,11 @@ public:
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;
 
+	// Static mesh component for the building part
 UPROPERTY(EditAnywhere)
 	UStaticMeshComponent* Mesh;
 
+	// Arrow component to show pivot point
 UPROPERTY(EditAnywhere)
 	UArrowComponent* PivotArrow;
 

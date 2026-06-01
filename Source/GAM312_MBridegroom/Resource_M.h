@@ -30,11 +30,11 @@ public:
 		FString resourceName = "Wood";
 
 	// Amount given per hit
-	UPROPERTY(EditAnywhere)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Resource")
 		int resourceAmount = 5;
 
 	// Total available resource
-	UPROPERTY(EditAnywhere)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Resource")
 		int totalResource = 100;
 
 	// Stores display text
@@ -52,4 +52,13 @@ public:
 	// Resource mesh asset
 	UPROPERTY(EditAnywhere)
 		UStaticMesh* resourceMesh;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Resource")
+		int MinResourceAmount = 1;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Resource")
+		int MaxResourceAmount = 5;
+
+
+
 };
