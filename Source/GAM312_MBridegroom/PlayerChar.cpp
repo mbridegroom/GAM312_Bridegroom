@@ -40,40 +40,81 @@ void APlayerChar::Tick(float DeltaTime)
 	PlayerUI->UpdateBars(Health, Hunger, Stamina);
 
 	// If player is building, update building part position
-	if (isBuilding)
+	PlayerUI->UpdateBars(Health, Hunger, Stamina);
+
+	if (isBuilding && spawnedPart)
 	{
-		if (spawnedPart)
+		FHitResult HitResult;
+
+		FVector StartLocation = PlayerCamComp->GetComponentLocation();
+		FVector EndLocation = StartLocation + PlayerCamComp->GetForwardVector() * 400.0f;
+
+		FCollisionQueryParams QueryParams;
+		QueryParams.AddIgnoredActor(this);
+		QueryParams.AddIgnoredActor(spawnedPart);
+
+		FVector TargetLocation;
+
+		// LINE TRACE
+		if (GetWorld()->LineTraceSingleByChannel(HitResult, StartLocation, EndLocation, ECC_Visibility, QueryParams))
 		{
-			FHitResult HitResult;
+			TargetLocation = HitResult.Location;
+		}
+		else
+		{
+			TargetLocation = EndLocation;
+		}
 
-			// Get camera position
-			FVector StartLocation = PlayerCamComp->GetComponentLocation();
+		
+		// GRID SNAP
+		
+		FVector SnappedLocation = TargetLocation;
 
-			// Set trace distance
-			FVector Direction = PlayerCamComp->GetForwardVector() * 400.0f;
-			FVector EndLocation = StartLocation + Direction;
+		if (bUseGridSnap)
+		{
+			SnappedLocation.X = FMath::RoundToFloat(TargetLocation.X / GridSize) * GridSize;
+			SnappedLocation.Y = FMath::RoundToFloat(TargetLocation.Y / GridSize) * GridSize;
+			SnappedLocation.Z = HitResult.Location.Z;
+		}
+		
 
-			// Setup collision settings
-			FCollisionQueryParams QueryParams;
-			QueryParams.AddIgnoredActor(this);
-			QueryParams.AddIgnoredActor(spawnedPart);
+		spawnedPart->SetActorLocation(SnappedLocation);
+		
 
-			// Check for placement surface
-			if (GetWorld()->LineTraceSingleByChannel(HitResult, StartLocation, EndLocation, ECC_Visibility, QueryParams))
+		// Checking Placement
+		
+		FHitResult OverlapHit;
+
+		FCollisionShape Box = FCollisionShape::MakeBox(FVector(50.f, 50.f, 50.f));
+
+		bool bBlockingHit = GetWorld()->SweepSingleByChannel(
+			OverlapHit,
+			SnappedLocation,
+			SnappedLocation,
+			FQuat::Identity,
+			ECC_WorldStatic,
+			Box
+		);
+
+		bCanPlace = !bBlockingHit;
+
+		
+		// COLOR FEEDBACK
+		
+		UStaticMeshComponent* SpawnedMesh = spawnedPart->FindComponentByClass<UStaticMeshComponent>();
+
+		if (SpawnedMesh)
+		{
+			if (bCanPlace)
 			{
-				// Place building at hit location
-				spawnedPart->SetActorLocation(HitResult.Location);
-
+				SpawnedMesh->SetVectorParameterValueOnMaterials(TEXT("Color"), FVector(0, 1, 0));
 			}
 			else
 			{
-				// Place building in front of player
-				spawnedPart->SetActorLocation(EndLocation);
+				SpawnedMesh->SetVectorParameterValueOnMaterials(TEXT("Color"), FVector(1, 0, 0));
 			}
-
 		}
 	}
-	
 }
 
 // Called to bind functionality to input
@@ -95,6 +136,9 @@ void APlayerChar::SetupPlayerInputComponent(UInputComponent* PlayerInputComponen
 	PlayerInputComponent->BindAction("Interact", IE_Pressed, this, &APlayerChar::FindObject);
 	// Setup Rotate Building input
 	PlayerInputComponent->BindAction("RotPart", IE_Pressed, this, &APlayerChar::RotateBuilding);
+	PlayerInputComponent->BindAction("ToggleSnap", IE_Pressed, this, &APlayerChar::ToggleGridSnap);
+
+	PlayerInputComponent->BindAction("CancelBuild", IE_Pressed, this, &APlayerChar::CancelBuilding);
 }
 
 void APlayerChar::MoveForward(float axisValue)
@@ -147,10 +191,29 @@ void APlayerChar::FindObject()
 	if (!isBuilding && !isCrafting)
 	{
 		PlayAnimMontage(HarvestMontage);
+
 		// Check for hit object
 		if (GetWorld()->LineTraceSingleByChannel(HitResult, StartLocation, EndLocation, ECC_Visibility, QueryParams))
 		{
-			// Cast hit actor to resource
+			
+			//  BUILDING PART LOGIC 
+			
+			if (ABuildingPart* HitPart = Cast<ABuildingPart>(HitResult.GetActor()))
+			{
+				int ID = HitPart->BuildingID;
+
+				// Refund resource
+				BuildingArray[ID]++;
+
+				// Destroy piece
+				HitPart->Destroy();
+
+				return; // stop here so we don't also treat it as a resource
+			}
+
+			
+			//  RESOURCE LOGIC 
+			
 			AResource_M* HitResource = Cast<AResource_M>(HitResult.GetActor());
 
 			// Check stamina amount
@@ -158,25 +221,21 @@ void APlayerChar::FindObject()
 			{
 				if (HitResource)
 				{
-					
 					FString hitName = HitResource->resourceName;
+
 					int resourceValue = FMath::RandRange(
 						HitResource->MinResourceAmount,
 						HitResource->MaxResourceAmount
 					);
 
 					// Remove collected amount
-					HitResource->totalResource = HitResource->totalResource - resourceValue;
+					HitResource->totalResource -= resourceValue;
 
 					// Resource still available
 					if (HitResource->totalResource > resourceValue)
 					{
 						GiveResources(resourceValue, hitName);
 
-						
-
-						
-						// Spawn hit effect
 						UGameplayStatics::SpawnDecalAtLocation(
 							GetWorld(),
 							hitDecal,
@@ -185,33 +244,26 @@ void APlayerChar::FindObject()
 							FRotator(-90, 0, 0),
 							2.0f);
 
-						// Reduce stamina
 						SetStamina(-5.0f);
-						
 					}
 					else
 					{
-						// Remove empty resource
-						
 						HitResource->Destroy();
-
-						
 					}
 				}
 			}
-			
 		}
 	}
 	else
 	{
 		isBuilding = false;
+
 		if (spawnedPart)
 		{
-			spawnedPart->SetActorEnableCollision(true); // FINAL PLACED OBJECT
+			spawnedPart->SetActorEnableCollision(true);
 			spawnedPart = nullptr;
 		}
 	}
-
 }
 
 void APlayerChar::SetHealth(float Amount)
@@ -338,11 +390,16 @@ void APlayerChar::SpawnBuilding(int buildingID, bool& isSuccess)
 			FRotator myRot(0, 0, 0);
 			
 			BuildingArray[buildingID] = BuildingArray[buildingID] - 1;
+			BuildingTypeBeingPlaced = buildingID;
 
 			spawnedPart = GetWorld()->SpawnActor<ABuildingPart>(BuildingPartClass, EndLocation, myRot, SpawnParams);
-
-			spawnedPart->SetActorEnableCollision(false);
-			spawnedPart->SetActorTickEnabled(true);
+			
+			if (spawnedPart)
+			{
+				spawnedPart->BuildingID = buildingID;
+				spawnedPart->SetActorEnableCollision(false);
+				spawnedPart->SetActorTickEnabled(true);
+			}
 
 			isSuccess = true;
 
@@ -360,6 +417,24 @@ void APlayerChar::RotateBuilding()
 	if (isBuilding)
 	{
 		spawnedPart->AddActorLocalRotation(FRotator(0, 90, 0));
+
 	}
 }
 
+void APlayerChar::ToggleGridSnap()
+{
+    bUseGridSnap = !bUseGridSnap;
+}
+
+void APlayerChar::CancelBuilding()
+{
+	if (isBuilding && spawnedPart)
+	{
+		BuildingArray[BuildingTypeBeingPlaced]++;
+
+		spawnedPart->Destroy();
+
+		spawnedPart = nullptr;
+		isBuilding = false;
+	}
+}

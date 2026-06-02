@@ -31,3 +31,10 @@ void ABuildingPart::Tick(float DeltaTime)
 
 }
 
+void ABuildingPart::TakeDamageAndBreak()
+{
+	
+
+	Destroy();
+}
+

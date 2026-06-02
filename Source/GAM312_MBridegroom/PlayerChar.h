@@ -53,6 +53,9 @@ public:
 	UFUNCTION()
 		void FindObject();
 
+	UFUNCTION()
+		void ToggleGridSnap();
+
 	// player camera component
 	UPROPERTY(VisibleAnywhere)
 		UCameraComponent* PlayerCamComp;
@@ -149,8 +152,20 @@ public:
 	UFUNCTION(BlueprintImplementableEvent)
 		void ShowResourcePopup(const FString& ResourceType, float Amount);
 
+	UPROPERTY()
+		float GridSize = 100.f;
 
+	UPROPERTY()
+		bool bCanPlace = false;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Building")
+		bool bUseGridSnap = true;
+
+	UFUNCTION()
+		void CancelBuilding();
+
+	UPROPERTY()
+		int BuildingTypeBeingPlaced = 0;
 
 
 };

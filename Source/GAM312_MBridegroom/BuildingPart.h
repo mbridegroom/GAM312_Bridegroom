@@ -32,4 +32,11 @@ UPROPERTY(EditAnywhere)
 UPROPERTY(EditAnywhere)
 	UArrowComponent* PivotArrow;
 
+UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Building")
+	int BuildingID = 0;
+
+UFUNCTION()
+	void TakeDamageAndBreak();
+
 };
+
