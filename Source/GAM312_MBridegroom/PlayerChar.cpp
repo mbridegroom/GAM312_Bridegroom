@@ -205,9 +205,18 @@ void APlayerChar::FindObject()
 				// Refund resource
 				BuildingArray[ID]++;
 
+				FString BuildingName = TEXT("Unknown");
+
+				if (ID == 0) BuildingName = TEXT("Wall");
+				if (ID == 1) BuildingName = TEXT("Floor");
+				if (ID == 2) BuildingName = TEXT("Ceiling");
+
+				ShowResourcePopup(BuildingName, 1.0f);
+
+				ShowResourcePopup(BuildingName, 1.0f);
+			
 				// Destroy piece
 				HitPart->Destroy();
-
 				return; // stop here so we don't also treat it as a resource
 			}
 
@@ -256,6 +265,7 @@ void APlayerChar::FindObject()
 	}
 	else
 	{
+		// Enabling Collision and stopping building if currently building
 		isBuilding = false;
 
 		if (spawnedPart)
@@ -388,13 +398,14 @@ void APlayerChar::SpawnBuilding(int buildingID, bool& isSuccess)
 			FVector Direction = PlayerCamComp->GetForwardVector() * 400.0f;
 			FVector EndLocation = StartLocation + Direction;
 			FRotator myRot(0, 0, 0);
-			
+			// Subtract from building array
 			BuildingArray[buildingID] = BuildingArray[buildingID] - 1;
 			BuildingTypeBeingPlaced = buildingID;
 
 			spawnedPart = GetWorld()->SpawnActor<ABuildingPart>(BuildingPartClass, EndLocation, myRot, SpawnParams);
 			
 			if (spawnedPart)
+			// Set building ID and disable collision for the spawned part
 			{
 				spawnedPart->BuildingID = buildingID;
 				spawnedPart->SetActorEnableCollision(false);
@@ -422,11 +433,13 @@ void APlayerChar::RotateBuilding()
 }
 
 void APlayerChar::ToggleGridSnap()
+// Toggles grid snap on and off
 {
     bUseGridSnap = !bUseGridSnap;
 }
 
 void APlayerChar::CancelBuilding()
+// Cancels building and refunds resource
 {
 	if (isBuilding && spawnedPart)
 	{
