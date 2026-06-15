@@ -8,6 +8,7 @@
 #include "Resource_M.h"
 #include "Kismet/GameplayStatics.h"
 #include "BuildingPart.h"
+#include "ObjectiveWidget.h"
 #include "PlayerWidget.h"
 #include "Animation/AnimMontage.h"
 #include "PlayerChar.generated.h"
@@ -112,6 +113,15 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 		UPlayerWidget* PlayerUI;
 
+	//Objective widget reference
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+		UObjectiveWidget* objWidget;
+
+	UPROPERTY()
+		float objectsBuilt = 0.0f;
+
+	UPROPERTY()
+		float matsCollected = 0.0f;
 
 	// Changes player health
 	UFUNCTION(BlueprintCallable)

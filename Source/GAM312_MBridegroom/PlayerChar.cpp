@@ -29,6 +29,13 @@ void APlayerChar::BeginPlay()
 
 	FTimerHandle StatsTimerHandle;
 	GetWorld()->GetTimerManager().SetTimer(StatsTimerHandle, this, &APlayerChar::DecreaseStats, 2.0f, true);
+
+	if (objWidget)
+	{
+		// Initialize objective widget values
+		objWidget->UpdatebuildObj(0.0f);
+		objWidget->UpdatematOBJ(0.0f);
+	}
 	
 }
 
@@ -99,7 +106,7 @@ void APlayerChar::Tick(float DeltaTime)
 		bCanPlace = !bBlockingHit;
 
 		
-		// COLOR FEEDBACK
+		// Future Improvement to change material color to indicate if placement is valid
 		
 		UStaticMeshComponent* SpawnedMesh = spawnedPart->FindComponentByClass<UStaticMeshComponent>();
 
@@ -221,7 +228,7 @@ void APlayerChar::FindObject()
 			}
 
 			
-			//  RESOURCE LOGIC 
+			//  Resource Logic 
 			
 			AResource_M* HitResource = Cast<AResource_M>(HitResult.GetActor());
 
@@ -244,6 +251,10 @@ void APlayerChar::FindObject()
 					if (HitResource->totalResource > resourceValue)
 					{
 						GiveResources(resourceValue, hitName);
+
+						// Update resource objective widget
+						matsCollected = matsCollected + resourceValue;
+						objWidget->UpdatematOBJ(matsCollected);
 
 						UGameplayStatics::SpawnDecalAtLocation(
 							GetWorld(),
@@ -272,6 +283,9 @@ void APlayerChar::FindObject()
 		{
 			spawnedPart->SetActorEnableCollision(true);
 			spawnedPart = nullptr;
+			// Update building objective widget
+			objectsBuilt = objectsBuilt + 1.0f;
+			objWidget->UpdatebuildObj(objectsBuilt);
 		}
 	}
 }
