@@ -7,7 +7,13 @@
 // Sets default values
 APlayerChar::APlayerChar()
 {
- 	// Set this character to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
+// =========================
+// CAMERA USE 
+// =========================
+// Camera libraries UCameraComponent
+// handle how the player views the world. They manage position, rotation,
+// field of view, and attachment to player bones or components.
+
 	PrimaryActorTick.bCanEverTick = true;
 
 	PlayerCamComp = CreateDefaultSubobject<UCameraComponent>(TEXT("First Person Cam")); 
@@ -148,6 +154,12 @@ void APlayerChar::SetupPlayerInputComponent(UInputComponent* PlayerInputComponen
 	PlayerInputComponent->BindAction("CancelBuild", IE_Pressed, this, &APlayerChar::CancelBuilding);
 }
 
+
+// LINEAR ALGEBRA for Movement + Rotation Math
+//
+// Games rely heavily on vectors and matrices to calculate movement,
+// rotation, and physics. Unreal uses FVector and FRotator internally.
+
 void APlayerChar::MoveForward(float axisValue)
 {
 	// get forward direction from camera rotation
@@ -178,6 +190,13 @@ void APlayerChar::StopJump()
 	bPressedJump = false;
 }
 
+
+
+// TRACE / COLLISION for Line Tracing + Hit Detection
+// 
+// Traces simulate invisible rays used for interaction, shooting,
+// building placement, and environmental detection.
+
 void APlayerChar::FindObject()
 {
 	FHitResult HitResult;
@@ -186,7 +205,7 @@ void APlayerChar::FindObject()
 	FVector StartLocation = PlayerCamComp->GetComponentLocation();
 
 	// Set trace distance
-	FVector Direction = PlayerCamComp->GetForwardVector() * 800.0f;
+	FVector Direction = PlayerCamComp->GetForwardVector() * 400.0f;
 	FVector EndLocation = StartLocation + Direction;
 
 	// Setup collision settings
@@ -334,16 +353,14 @@ void APlayerChar::DecreaseStats()
 	// Lower hunger over time
 	if (Hunger > 0.0f)
 	{
-		SetHunger(-1.0f);
+		SetHunger(-4.0f);
+		SetStamina(3.0f);
 	}
 
-	// Restore stamina
-	SetStamina(0.5f);
-
 	// Lose health if starving
-	if (Hunger <= 0.0f)
+	if (Health > 0.0f && Hunger <= 0.0f)
 	{
-		SetHealth(-3.0f);
+		SetHealth(-10.0f);
 	}
 }
 
@@ -465,3 +482,10 @@ void APlayerChar::CancelBuilding()
 		isBuilding = false;
 	}
 }
+
+// DONE IN BLUEPRINTS
+// AI Nav Mesh and Pathfinding
+
+// AI navigation in Unreal uses a NavMesh 
+// which is a simplified walkable surface for AI agents.
+// Pathfinding uses algorithms like A* to move AI efficiently.
